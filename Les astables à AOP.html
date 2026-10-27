@@ -1,0 +1,726 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Les astables à AOP</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+:root{
+  /* Cahier de cours : encre bleue pour les démonstrations, rouge pour la sortie Vs, vert pour les remarques, comme dans le cours manuscrit. */
+  --bg:#f5f7fa; --surface:#ffffff; --fg:#17212f; --muted:#566275; --rule:#d5dbe4; --grid:#e4e9f0;
+  --blue:#1c4a9c; --red:#c0282d; --green:#17704a; --tint:#e8eff9;
+  --band-a:rgba(192,40,45,.07); --band-b:rgba(28,74,156,.07);
+  --f-sans:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+  --f-math:'STIX Two Text','Times New Roman',Georgia,serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e141c; --surface:#151d28; --fg:#e4e9f0; --muted:#98a5b7; --rule:#2a3545; --grid:#202a37;
+    --blue:#86adf2; --red:#ff7f84; --green:#5ccf9a; --tint:#17233a;
+    --band-a:rgba(255,127,132,.10); --band-b:rgba(134,173,242,.10); color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e141c; --surface:#151d28; --fg:#e4e9f0; --muted:#98a5b7; --rule:#2a3545; --grid:#202a37;
+  --blue:#86adf2; --red:#ff7f84; --green:#5ccf9a; --tint:#17233a;
+  --band-a:rgba(255,127,132,.10); --band-b:rgba(134,173,242,.10); color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--fg); font-family:var(--f-sans); font-size:16px; line-height:1.65;
+  padding-block:28px 64px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap{max-width:46rem; margin:0 auto}
+header{padding-bottom:1.5rem}
+.eyebrow{font-family:var(--f-mono); font-size:.78rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:0 0 .6rem}
+h1{font-size:clamp(2.1rem,7vw,3rem); line-height:1.1; font-weight:600; letter-spacing:-.015em; color:var(--blue); margin:0 0 1rem; text-wrap:balance}
+.lede{font-size:1.1rem; max-width:40rem; margin:0 0 1.4rem}
+nav.plan{border-top:1px solid var(--rule); border-bottom:1px solid var(--rule); padding:.9rem 0}
+nav.plan p{font-family:var(--f-mono); font-size:.75rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:0 0 .4rem}
+nav.plan ol{margin:0; padding:0; list-style:none; columns:2 15rem; column-gap:2rem}
+nav.plan li{break-inside:avoid; padding:.12rem 0}
+nav.plan a{color:var(--fg); text-decoration:none; border-bottom:1px solid var(--rule)}
+nav.plan a:hover{border-color:var(--blue); color:var(--blue)}
+nav.plan span{font-family:var(--f-mono); font-size:.82rem; color:var(--muted); margin-right:.5rem}
+section{margin-top:3.2rem}
+h2{font-size:1.45rem; line-height:1.25; font-weight:600; margin:0 0 1rem; padding-top:1.1rem; border-top:2px solid var(--blue); text-wrap:balance}
+h2 .n{font-family:var(--f-mono); font-weight:500; font-size:.9rem; color:var(--muted); margin-right:.6rem}
+h3{font-size:1.02rem; font-weight:600; color:var(--blue); margin:1.8rem 0 .4rem}
+h3 .tag{font-family:var(--f-mono); font-weight:500; font-size:.76rem; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-right:.5rem}
+p{margin:.6rem 0}
+ul,ol{padding-left:1.3rem; margin:.6rem 0}
+li{margin:.25rem 0}
+.m,.eq{font-family:var(--f-math)}
+.m{font-style:italic; font-size:1.06em}
+sub,sup{font-size:.72em; line-height:0}
+.eq{display:block; font-size:1.2rem; padding:.75rem 1rem; margin:.9rem 0; background:var(--tint); border-left:3px solid var(--blue); overflow-x:auto; white-space:nowrap; font-style:italic}
+.eq .u{font-style:normal}
+.eq.key{background:var(--surface); border:1px solid var(--blue); border-left-width:4px}
+.eq small{font-family:var(--f-sans); font-style:normal; font-size:.82rem; color:var(--muted); margin-left:1.2rem}
+.f{display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 .2em; line-height:1.25}
+.f>span:first-child{border-bottom:1px solid currentColor; padding:0 .25em .08em}
+.f>span:last-child{padding:.08em .25em 0}
+.note{border-left:3px solid var(--green); padding:.1rem 0 .1rem 1rem; margin:1.2rem 0}
+.note b{font-family:var(--f-mono); font-weight:500; font-size:.76rem; letter-spacing:.06em; text-transform:uppercase; color:var(--green); display:block; margin-bottom:.15rem}
+.tw{overflow-x:auto; margin:1rem 0}
+table{border-collapse:collapse; width:100%; min-width:30rem; font-size:.94rem}
+th{font-family:var(--f-mono); font-weight:500; font-size:.72rem; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); text-align:left; padding:.5rem .7rem; border-bottom:2px solid var(--rule)}
+td{padding:.55rem .7rem; border-bottom:1px solid var(--rule); vertical-align:top}
+td .m{white-space:nowrap}
+figure{margin:1.4rem 0}
+.fig{background:var(--surface); border:1px solid var(--rule); border-radius:6px; padding:.6rem}
+figcaption{font-size:.88rem; color:var(--muted); margin-top:.5rem}
+figcaption b{font-family:var(--f-mono); font-weight:500; color:var(--fg)}
+svg{display:block; width:100%; height:auto}
+svg text{font-family:var(--f-mono); font-size:11px; fill:var(--muted)}
+svg .mt{font-family:var(--f-math); font-style:italic; font-size:14px; fill:var(--fg)}
+svg .ax{stroke:var(--muted); stroke-width:1; fill:none}
+svg .gr{stroke:var(--grid); stroke-width:1; fill:none}
+svg .dash{stroke:var(--muted); stroke-width:1; stroke-dasharray:4 3; fill:none}
+svg .vc{stroke:var(--blue); stroke-width:2; fill:none}
+svg .vs{stroke:var(--red); stroke-width:2; fill:none}
+svg .wire{stroke:var(--fg); stroke-width:1.6; fill:none; stroke-linejoin:round}
+svg .tb{fill:var(--blue)}
+svg .tr{fill:var(--red)}
+svg .tx-b{fill:var(--blue)}
+svg .tx-r{fill:var(--red)}
+svg .tx-f{fill:var(--fg)}
+svg .band-a{fill:var(--band-a)}
+svg .band-b{fill:var(--band-b)}
+svg .fillbg{fill:var(--surface)}
+.lab{border:1px solid var(--rule); border-radius:6px; background:var(--surface); padding:1rem; margin:1rem 0}
+.lab .ctl{display:grid; grid-template-columns:repeat(auto-fit,minmax(13rem,1fr)); gap:.9rem 1.5rem}
+.lab label{display:block; font-size:.88rem}
+.lab label span{font-family:var(--f-mono); color:var(--blue); float:right}
+.lab input[type=range]{width:100%; accent-color:var(--blue); margin:.35rem 0 0}
+.read{display:flex; flex-wrap:wrap; gap:.4rem 1.6rem; margin:.9rem 0 0; padding-top:.8rem; border-top:1px solid var(--rule); font-family:var(--f-mono); font-size:.84rem}
+.read div{min-width:0}
+.read b{font-weight:500; color:var(--blue)}
+:focus-visible{outline:2px solid var(--blue); outline-offset:2px}
+footer{margin-top:3rem; padding-top:1rem; border-top:1px solid var(--rule); font-size:.88rem; color:var(--muted)}
+</style>
+<div class="wrap">
+<header>
+  <p class="eyebrow">Électronique · AOP en régime non linéaire</p>
+  <h1>Les astables</h1>
+  <p class="lede">Un astable n'a aucun état stable : sa sortie bascule toute seule, sans entrée, entre <span class="m">V<sub>sat+</sub></span> et <span class="m">V<sub>sat−</sub></span>. Ce cours reprend le montage à AOP du cours manuscrit. Chaque formule est démontrée ligne par ligne, puis vérifiée sur des courbes.</p>
+  <nav class="plan" aria-label="Plan du cours">
+    <p>Plan</p>
+    <ol>
+      <li><span>0</span><a href="#rappels">Rappels</a></li>
+      <li><span>1</span><a href="#montage">Le montage</a></li>
+      <li><span>2</span><a href="#seuils">Les deux seuils du trigger</a></li>
+      <li><span>3</span><a href="#condo">Le condensateur, phase par phase</a></li>
+      <li><span>4</span><a href="#duree">Durées et période</a></li>
+      <li><span>5</span><a href="#symetrique">Cas symétrique</a></li>
+      <li><span>6</span><a href="#diodes">Régler le rapport cyclique : diodes</a></li>
+      <li><span>7</span><a href="#pot">Solution finale : potentiomètre</a></li>
+      <li><span>8</span><a href="#moteur">Application : vitesse d'un moteur</a></li>
+      <li><span>9</span><a href="#recap">Récapitulatif</a></li>
+    </ol>
+  </nav>
+</header>
+<main>
+
+<section id="rappels">
+  <h2><span class="n">0</span>Rappels</h2>
+  <p>Quatre résultats à avoir en tête avant de commencer.</p>
+
+  <h3><span class="tag">Rappel 1</span>Un AOP idéal</h3>
+  <p>Les courants d'entrée sont nuls. La grandeur qui commande la sortie est la différence <span class="m">ε = e<sup>+</sup> − e<sup>−</sup></span>.</p>
+
+  <h3><span class="tag">Rappel 2</span>Saturation</h3>
+  <p>Sans réaction négative, ou avec une réaction positive, l'AOP est saturé : la sortie ne prend que deux valeurs.</p>
+  <div class="eq">ε &gt; 0 ⇒ V<sub>s</sub> = V<sub>sat+</sub> <small>et</small> ε &lt; 0 ⇒ V<sub>s</sub> = V<sub>sat−</sub></div>
+  <p>Le basculement a lieu au moment où <span class="m">ε = 0</span>, c'est-à-dire quand <span class="m">e<sup>+</sup> = e<sup>−</sup></span>. Toute la suite revient à repérer cet instant.</p>
+
+  <h3><span class="tag">Rappel 3</span>Bistable, monostable, astable</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Circuit</th><th>États stables</th><th>Comportement</th></tr></thead>
+    <tbody>
+      <tr><td>Bistable</td><td>2</td><td>Reste dans un état jusqu'à une impulsion qui le fait changer. Il mémorise la dernière impulsion.</td></tr>
+      <tr><td>Monostable</td><td>1</td><td>Une impulsion le fait passer dans un état quasi-stable. Il revient seul à l'état stable après une durée fixée par un réseau RC.</td></tr>
+      <tr><td>Astable</td><td>0</td><td>Aucun état ne dure. Il oscille seul entre les deux saturations, sans signal d'entrée.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><span class="tag">Rappel 4</span>Charge d'un condensateur à travers une résistance</h3>
+  <p>Si une tension continue charge C à travers R, la tension <span class="m">V<sub>c</sub></span> va de sa valeur initiale vers sa valeur finale selon :</p>
+  <div class="eq">V<sub>c</sub>(t) = V<sub>ci</sub> + (V<sub>cf</sub> − V<sub>ci</sub>) · (1 − e<sup>−(t−t<sub>0</sub>)/RC</sup>)</div>
+  <p>La constante de temps est <span class="m">τ = RC</span>. Après une durée τ, le condensateur a parcouru 63 % de l'écart entre sa valeur initiale et sa valeur finale. Cette courbe est exponentielle : rapide au début, de plus en plus lente ensuite.</p>
+</section>
+
+<section id="montage">
+  <h2><span class="n">1</span>Le montage</h2>
+  <figure>
+    <div class="fig">
+<svg viewBox="0 0 480 316" role="img" aria-label="Schéma de l'astable : AOP avec R et C sur l'entrée inverseuse, R1, R2 et Vref sur l'entrée non inverseuse">
+  <rect x="160" y="56" width="200" height="248" rx="4" fill="none" stroke="var(--red)" stroke-width="1.4" stroke-dasharray="6 4"/>
+  <text x="206" y="294" class="tx-r">trigger inverseur</text>
+  <polygon points="200,70 200,160 300,115" class="wire fillbg"/>
+  <text x="207" y="93" class="tx-f" style="font-size:14px">−</text>
+  <text x="207" y="152" class="tx-f" style="font-size:14px">+</text>
+  <path class="wire" d="M300 115 H380"/>
+  <circle cx="380" cy="115" r="3" class="fillbg" stroke="var(--fg)" stroke-width="1.4"/>
+  <text x="392" y="119" class="mt">V<tspan font-size="10" dy="3">s</tspan></text>
+  <circle cx="340" cy="115" r="2.6" class="tx-f"/>
+  <path class="wire" d="M340 115 V34 H295 M255 34 H150 V88 H200"/>
+  <rect x="255" y="27" width="40" height="14" class="wire fillbg"/>
+  <text x="270" y="20" class="mt">R</text>
+  <circle cx="150" cy="88" r="2.6" class="tx-f"/>
+  <text x="162" y="82" class="mt">e<tspan font-size="10" dy="-5">−</tspan></text>
+  <path class="wire" d="M150 88 V104 M138 104 H162 M138 112 H162 M150 112 V126 M141 126 H159 M144 130 H156 M147 134 H153"/>
+  <text x="170" y="112" class="mt">C</text>
+  <text x="20" y="112" class="mt">V<tspan font-size="10" dy="3">c</tspan><tspan dy="-3"> = e</tspan><tspan font-size="10" dy="-5">−</tspan></text>
+  <path class="wire" d="M200 142 H176 V206 M340 115 V206 H295 M255 206 H176"/>
+  <rect x="255" y="199" width="40" height="14" class="wire fillbg"/>
+  <text x="268" y="193" class="mt">R<tspan font-size="10" dy="3">2</tspan></text>
+  <circle cx="176" cy="206" r="2.6" class="tx-f"/>
+  <text x="152" y="138" class="mt">e<tspan font-size="10" dy="-5">+</tspan></text>
+  <path class="wire" d="M176 206 V222 M176 258 V270 M166 270 H186 M171 277 H181 M176 277 V288 M167 288 H185 M170 292 H182 M173 296 H179"/>
+  <rect x="169" y="222" width="14" height="36" class="wire fillbg"/>
+  <text x="194" y="244" class="mt">R<tspan font-size="10" dy="3">1</tspan></text>
+  <text x="194" y="278" class="mt">V<tspan font-size="10" dy="3">ref</tspan></text>
+</svg>
+    </div>
+    <figcaption><b>Figure 1</b> · Montage astable. Le cadre pointillé est le trigger inverseur. R et C ferment une boucle de retard sur l'entrée (−).</figcaption>
+  </figure>
+
+  <h3><span class="tag">Les pièces</span>Ce que fait chaque élément</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Élément</th><th>Rôle</th></tr></thead>
+    <tbody>
+      <tr><td>AOP</td><td>Fonctionne en comparateur. Sa sortie vaut <span class="m">V<sub>sat+</sub></span> ou <span class="m">V<sub>sat−</sub></span>, jamais une valeur intermédiaire.</td></tr>
+      <tr><td><span class="m">R<sub>2</sub></span></td><td>Ramène la sortie sur l'entrée (+). C'est une <b>réaction positive</b> : elle force la saturation et fabrique l'hystérésis.</td></tr>
+      <tr><td><span class="m">R<sub>1</sub></span> et <span class="m">V<sub>ref</sub></span></td><td><span class="m">R<sub>1</sub></span> relie l'entrée (+) à la source <span class="m">V<sub>ref</sub></span>. Avec <span class="m">R<sub>2</sub></span>, elle forme un pont diviseur qui fixe les deux seuils de basculement.</td></tr>
+      <tr><td><span class="m">R</span></td><td>Relie la sortie à l'entrée (−). Elle règle la vitesse de charge et de décharge du condensateur.</td></tr>
+      <tr><td><span class="m">C</span></td><td>Garde en mémoire l'histoire du circuit. Sa tension <span class="m">V<sub>c</sub> = e<sup>−</sup></span> est celle qu'on compare au seuil.</td></tr>
+    </tbody>
+  </table></div>
+  <p>Le cadre rouge en pointillé du cours s'appelle un <b>trigger inverseur</b> : un comparateur à hystérésis dont le signal à comparer entre sur l'entrée (−). Ici ce signal n'est pas extérieur, c'est la tension du condensateur.</p>
+
+  <h3><span class="tag">Idée</span>Pourquoi ça oscille</h3>
+  <ol>
+    <li>La sortie est à <span class="m">V<sub>sat+</sub></span>. Le condensateur se charge à travers R vers <span class="m">V<sub>sat+</sub></span>, donc <span class="m">e<sup>−</sup></span> monte.</li>
+    <li>Quand <span class="m">e<sup>−</sup></span> atteint le seuil <span class="m">e<sup>+</sup></span>, la sortie bascule à <span class="m">V<sub>sat−</sub></span>. Au même moment, le seuil <span class="m">e<sup>+</sup></span> change de valeur.</li>
+    <li>Le condensateur se décharge à travers R vers <span class="m">V<sub>sat−</sub></span>, donc <span class="m">e<sup>−</sup></span> descend.</li>
+    <li>Quand <span class="m">e<sup>−</sup></span> atteint le nouveau seuil, la sortie rebascule à <span class="m">V<sub>sat+</sub></span>. Retour à l'étape 1.</li>
+  </ol>
+  <p>Aucun état ne peut durer : la tension que le condensateur cherche à atteindre (la sortie) est toujours située au-delà du seuil. Le condensateur finit donc toujours par le franchir. C'est exactement la définition de l'astable.</p>
+</section>
+
+<section id="seuils">
+  <h2><span class="n">2</span>Étape 1 : les deux seuils du trigger</h2>
+
+  <h3><span class="tag">2.1</span>Tension sur l'entrée (+)</h3>
+  <p>Le courant d'entrée de l'AOP est nul. <span class="m">R<sub>2</sub></span> et <span class="m">R<sub>1</sub></span> sont donc en série, entre la sortie <span class="m">V<sub>s</sub></span> et la source <span class="m">V<sub>ref</sub></span>, et traversées par le même courant :</p>
+  <div class="eq">i = <span class="f"><span>V<sub>s</sub> − V<sub>ref</sub></span><span>R<sub>1</sub> + R<sub>2</sub></span></span></div>
+  <p>La tension en (+) est celle de la source plus la chute dans <span class="m">R<sub>1</sub></span> :</p>
+  <div class="eq">e<sup>+</sup> = V<sub>ref</sub> + R<sub>1</sub> · <span class="f"><span>V<sub>s</sub> − V<sub>ref</sub></span><span>R<sub>1</sub> + R<sub>2</sub></span></span> = <span class="f"><span>R<sub>1</sub> V<sub>s</sub> + R<sub>2</sub> V<sub>ref</sub></span><span>R<sub>1</sub> + R<sub>2</sub></span></span></div>
+  <p>Le théorème de superposition donne le même résultat : <span class="m">e<sup>+</sup></span> est la somme de la contribution de <span class="m">V<sub>s</sub></span> (pont diviseur, facteur <span class="m">R<sub>1</sub>/(R<sub>1</sub>+R<sub>2</sub>)</span>) et de celle de <span class="m">V<sub>ref</sub></span> (facteur <span class="m">R<sub>2</sub>/(R<sub>1</sub>+R<sub>2</sub>)</span>).</p>
+
+  <h3><span class="tag">2.2</span>Deux seuils, pas un seul</h3>
+  <p>Le seuil <span class="m">e<sup>+</sup></span> dépend de <span class="m">V<sub>s</sub></span>, qui ne prend que deux valeurs. Il y a donc deux seuils, notés comme dans le cours <span class="m">V<sub>1</sub></span> et <span class="m">V<sub>2</sub></span> :</p>
+  <div class="eq key">V<sub>1</sub> = <span class="f"><span>R<sub>1</sub> V<sub>sat+</sub> + R<sub>2</sub> V<sub>ref</sub></span><span>R<sub>1</sub> + R<sub>2</sub></span></span> <small>seuil quand V<sub>s</sub> = V<sub>sat+</sub></small></div>
+  <div class="eq key">V<sub>2</sub> = <span class="f"><span>R<sub>1</sub> V<sub>sat−</sub> + R<sub>2</sub> V<sub>ref</sub></span><span>R<sub>1</sub> + R<sub>2</sub></span></span> <small>seuil quand V<sub>s</sub> = V<sub>sat−</sub></small></div>
+  <p>Comme <span class="m">V<sub>sat+</sub> &gt; V<sub>sat−</sub></span>, on a toujours <span class="m">V<sub>1</sub> &gt; V<sub>2</sub></span>. L'écart est la <b>largeur d'hystérésis</b> :</p>
+  <div class="eq">V<sub>1</sub> − V<sub>2</sub> = <span class="f"><span>R<sub>1</sub> (V<sub>sat+</sub> − V<sub>sat−</sub>)</span><span>R<sub>1</sub> + R<sub>2</sub></span></span></div>
+
+  <h3><span class="tag">2.3</span>Quand a lieu chaque basculement</h3>
+  <p>Le cours le formule ainsi. <span class="m">V<sub>1</sub></span> est le moment du basculement de <span class="m">V<sub>sat+</sub></span> vers <span class="m">V<sub>sat−</sub></span> : à cet instant <span class="m">e<sup>−</sup> = e<sup>+</sup></span> alors que <span class="m">V<sub>s</sub> = V<sub>sat+</sub></span>, ce qui donne bien l'expression de <span class="m">V<sub>1</sub></span> ci-dessus. De même, <span class="m">V<sub>2</sub></span> est le moment du basculement de <span class="m">V<sub>sat−</sub></span> vers <span class="m">V<sub>sat+</sub></span>, avec <span class="m">V<sub>s</sub> = V<sub>sat−</sub></span>.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Sortie avant</th><th>Seuil actif</th><th>Basculement quand</th><th>Sortie après</th></tr></thead>
+    <tbody>
+      <tr><td><span class="m">V<sub>sat+</sub></span></td><td><span class="m">e<sup>+</sup> = V<sub>1</sub></span></td><td><span class="m">e<sup>−</sup></span> monte et atteint <span class="m">V<sub>1</sub></span></td><td><span class="m">V<sub>sat−</sub></span></td></tr>
+      <tr><td><span class="m">V<sub>sat−</sub></span></td><td><span class="m">e<sup>+</sup> = V<sub>2</sub></span></td><td><span class="m">e<sup>−</sup></span> descend et atteint <span class="m">V<sub>2</sub></span></td><td><span class="m">V<sub>sat+</sub></span></td></tr>
+    </tbody>
+  </table></div>
+
+  <figure>
+    <div class="fig" id="fig2"></div>
+    <figcaption><b>Figure 2</b> · Caractéristique <span class="m">V<sub>s</sub> = f(e<sup>−</sup>)</span> du trigger inverseur (ici <span class="m">R<sub>1</sub> = R<sub>2</sub></span>, <span class="m">V<sub>ref</sub> = 3 V</span>, <span class="m">V<sub>sat</sub> = 12 V</span>, soit <span class="m">V<sub>1</sub> = 7,5 V</span> et <span class="m">V<sub>2</sub> = −4,5 V</span>). On suit le cycle dans le sens des flèches.</figcaption>
+  </figure>
+
+  <p>Lecture de la figure : pour <span class="m">e<sup>−</sup></span> croissant, la sortie reste à <span class="m">V<sub>sat+</sub></span> jusqu'à <span class="m">V<sub>1</sub></span>, puis tombe. Pour <span class="m">e<sup>−</sup></span> décroissant, elle reste à <span class="m">V<sub>sat−</sub></span> jusqu'à <span class="m">V<sub>2</sub></span>, puis remonte. Entre <span class="m">V<sub>2</sub></span> et <span class="m">V<sub>1</sub></span>, la valeur de la sortie dépend du chemin parcouru : c'est l'hystérésis.</p>
+  <div class="note"><b>Remarque du prof.</b>L'hystérésis est ce qui rend l'oscillation possible. Avec un seul seuil, la sortie basculerait, ferait varier <span class="m">e<sup>−</sup></span> en sens inverse et rebasculerait aussitôt. Avec deux seuils, il faut une vraie course de <span class="m">V<sub>c</sub></span> entre <span class="m">V<sub>2</sub></span> et <span class="m">V<sub>1</sub></span> avant le basculement suivant.</div>
+</section>
+
+<section id="condo">
+  <h2><span class="n">3</span>Étape 2 : le condensateur, phase par phase</h2>
+
+  <h3><span class="tag">3.1</span>L'équation de la charge</h3>
+  <p>Tant que la sortie ne bascule pas, <span class="m">V<sub>s</sub></span> est une constante. La loi des mailles sur <span class="m">R</span> et <span class="m">C</span> s'écrit, avec <span class="m">i<sub>C</sub> = C dV<sub>c</sub>/dt</span> :</p>
+  <div class="eq">V<sub>s</sub> = R · C <span class="f"><span>dV<sub>c</sub></span><span>dt</span></span> + V<sub>c</sub></div>
+  <p>C'est une équation du premier ordre à second membre constant. Sa solution, avec <span class="m">V<sub>c</sub>(t<sub>0</sub>)</span> comme condition initiale, est :</p>
+  <div class="eq key">V<sub>c</sub>(t) = V<sub>s</sub> + (V<sub>c</sub>(t<sub>0</sub>) − V<sub>s</sub>) · e<sup>−(t−t<sub>0</sub>)/RC</sup></div>
+  <p>Vérification : à <span class="m">t = t<sub>0</sub></span> on retrouve <span class="m">V<sub>c</sub>(t<sub>0</sub>)</span>, et pour <span class="m">t → ∞</span> on tend vers <span class="m">V<sub>s</sub></span>. C'est le Rappel 4 réécrit avec <span class="m">V<sub>ci</sub> = V<sub>c</sub>(t<sub>0</sub>)</span> et <span class="m">V<sub>cf</sub> = V<sub>s</sub></span>.</p>
+
+  <h3><span class="tag">3.2</span>La version du cours, avec le courant</h3>
+  <p>Le cours oriente le courant <span class="m">i</span> du condensateur vers la sortie et écrit :</p>
+  <div class="eq">e<sup>−</sup>(t) = V<sub>sat+</sub> + R · i(t) <small>avec</small> i(t) = A · e<sup>−(t−t<sub>0</sub>)/RC</sup></div>
+  <p>La constante <span class="m">A</span> se trouve avec la condition initiale. À <span class="m">t<sub>0</sub></span>, <span class="m">e<sup>−</sup>(t<sub>0</sub>) = V<sub>c</sub>(t<sub>0</sub>) = V<sub>sat+</sub> + R · i(t<sub>0</sub>)</span>, donc :</p>
+  <div class="eq">A = i(t<sub>0</sub>) = <span class="f"><span>V<sub>c</sub>(t<sub>0</sub>) − V<sub>sat+</sub></span><span>R</span></span> ⇒ e<sup>−</sup>(t) = V<sub>sat+</sub> + (V<sub>c</sub>(t<sub>0</sub>) − V<sub>sat+</sub>) · e<sup>−(t−t<sub>0</sub>)/RC</sup></div>
+  <p>C'est exactement la formule du 3.1 avec <span class="m">V<sub>s</sub> = V<sub>sat+</sub></span>. Le signe de <span class="m">A</span> est négatif pendant la charge, parce que le condensateur est en dessous de <span class="m">V<sub>sat+</sub></span> : le courant réel circule dans le sens opposé à celui choisi.</p>
+
+  <h3><span class="tag">3.3</span>Les trois phases</h3>
+  <div class="tw"><table style="min-width:40rem">
+    <thead><tr><th>Phase</th><th>Intervalle</th><th><span class="m">V<sub>s</sub></span></th><th><span class="m">e<sup>+</sup></span></th><th><span class="m">V<sub>c</sub></span> évolue</th><th>Fin de phase</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><span class="m">t<sub>0</sub> &lt; t &lt; t<sub>1</sub></span></td><td><span class="m">V<sub>sat+</sub></span></td><td><span class="m">V<sub>1</sub></span></td><td>croît, de <span class="m">V<sub>c</sub>(t<sub>0</sub>)</span> vers <span class="m">V<sub>sat+</sub></span></td><td><span class="m">e<sup>−</sup> &gt; e<sup>+</sup></span></td></tr>
+      <tr><td>2</td><td><span class="m">t<sub>1</sub> &lt; t &lt; t<sub>2</sub></span></td><td><span class="m">V<sub>sat−</sub></span></td><td><span class="m">V<sub>2</sub></span></td><td>décroît, de <span class="m">V<sub>1</sub></span> vers <span class="m">V<sub>sat−</sub></span></td><td><span class="m">e<sup>−</sup> &lt; e<sup>+</sup></span></td></tr>
+      <tr><td>3</td><td><span class="m">t<sub>2</sub> &lt; t &lt; t<sub>3</sub></span></td><td><span class="m">V<sub>sat+</sub></span></td><td><span class="m">V<sub>1</sub></span></td><td>croît, de <span class="m">V<sub>2</sub></span> vers <span class="m">V<sub>sat+</sub></span></td><td><span class="m">e<sup>−</sup> &gt; e<sup>+</sup></span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><span class="tag">Phase 1</span><span class="m">t<sub>0</sub> &lt; t &lt; t<sub>1</sub></span> : charge vers V<sub>sat+</sub></h3>
+  <p>On suppose <span class="m">V<sub>s</sub> = V<sub>sat+</sub></span> à <span class="m">t<sub>0</sub></span>. Le seuil est donc <span class="m">e<sup>+</sup> = V<sub>1</sub></span>.</p>
+  <div class="eq">V<sub>c</sub>(t) = e<sup>−</sup>(t) = V<sub>c</sub>(t<sub>0</sub>) + (V<sub>sat+</sub> − V<sub>c</sub>(t<sub>0</sub>)) · (1 − e<sup>−(t−t<sub>0</sub>)/RC</sup>)</div>
+  <p>C'est une fonction croissante, puisque <span class="m">V<sub>sat+</sub> &gt; V<sub>c</sub></span>. Elle monte jusqu'à ce que <span class="m">e<sup>−</sup> &gt; e<sup>+</sup> = V<sub>1</sub></span>. À cet instant, <b>basculement de V<sub>sat+</sub> vers V<sub>sat−</sub></b>.</p>
+
+  <h3><span class="tag">Phase 2</span><span class="m">t<sub>1</sub> &lt; t &lt; t<sub>2</sub></span> : décharge vers V<sub>sat−</sub></h3>
+  <p>La sortie vaut <span class="m">V<sub>sat−</sub></span>, le seuil est <span class="m">e<sup>+</sup> = V<sub>2</sub></span>. À <span class="m">t<sub>1</sub></span>, le condensateur vaut <span class="m">V<sub>c</sub>(t<sub>1</sub>) = V<sub>1</sub></span>, puisque c'est lui qui a déclenché le basculement. On reporte dans la formule générale :</p>
+  <div class="eq">V<sub>c</sub>(t) = e<sup>−</sup>(t) = V<sub>1</sub> + (V<sub>sat−</sub> − V<sub>1</sub>) · (1 − e<sup>−(t−t<sub>1</sub>)/RC</sup>)</div>
+  <p>Ici <span class="m">V<sub>sat−</sub> − V<sub>1</sub></span> est négatif : la fonction est décroissante. Elle descend jusqu'à <span class="m">e<sup>−</sup> &lt; e<sup>+</sup> = V<sub>2</sub></span>. À cet instant, <b>basculement de V<sub>sat−</sub> vers V<sub>sat+</sub></b>.</p>
+
+  <h3><span class="tag">Phase 3</span><span class="m">t<sub>2</sub> &lt; t &lt; t<sub>3</sub></span> : recharge vers V<sub>sat+</sub></h3>
+  <p>La sortie est revenue à <span class="m">V<sub>sat+</sub></span>, le seuil est <span class="m">e<sup>+</sup> = V<sub>1</sub></span>. À <span class="m">t<sub>2</sub></span>, <span class="m">V<sub>c</sub>(t<sub>2</sub>) = V<sub>2</sub></span> :</p>
+  <div class="eq">V<sub>c</sub>(t) = V<sub>2</sub> + (V<sub>sat+</sub> − V<sub>2</sub>) · (1 − e<sup>−(t−t<sub>2</sub>)/RC</sup>)</div>
+  <p>La fonction croît de <span class="m">V<sub>2</sub></span> jusqu'à <span class="m">V<sub>1</sub></span> à l'instant <span class="m">t<sub>3</sub></span>, puis tout recommence : la phase 3 est identique à la phase 1, avec un point de départ différent seulement à la mise sous tension.</p>
+
+  <figure>
+    <div class="fig" id="fig3"></div>
+    <figcaption><b>Figure 3</b> · Tension <span class="m">V<sub>c</sub> = e<sup>−</sup></span> (bleu) et sortie <span class="m">V<sub>s</sub></span> (rouge), avec <span class="m">R<sub>1</sub> = R<sub>2</sub></span>, <span class="m">V<sub>ref</sub> = 0</span>, <span class="m">V<sub>sat</sub> = 12 V</span>, temps en unités de <span class="m">RC</span>. À la mise sous tension le condensateur est déchargé : <span class="m">V<sub>c</sub>(t<sub>0</sub>) = 0</span>, donc la phase 1 est plus courte que les suivantes. Le régime périodique commence en <span class="m">t<sub>1</sub></span>.</figcaption>
+  </figure>
+  <p>Deux repères pour lire la courbe. Les droites pointillées horizontales sont les seuils <span class="m">V<sub>1</sub></span> et <span class="m">V<sub>2</sub></span> : <span class="m">V<sub>c</sub></span> oscille entre elles et ne va jamais jusqu'à <span class="m">±V<sub>sat</sub></span>. Chaque morceau de la courbe est un arc d'exponentielle, qui vise <span class="m">V<sub>sat+</sub></span> ou <span class="m">V<sub>sat−</sub></span> mais est interrompu en route.</p>
+</section>
+
+<section id="duree">
+  <h2><span class="n">4</span>Étape 3 : durées et période</h2>
+  <p>On cherche le temps que met le condensateur pour aller d'un seuil à l'autre. Il suffit d'écrire la condition de fin de phase dans la formule de la phase.</p>
+
+  <h3><span class="tag">4.1</span>Durée de la phase 3, sortie à V<sub>sat+</sub></h3>
+  <p>À <span class="m">t<sub>3</sub></span>, <span class="m">V<sub>c</sub>(t<sub>3</sub>) = V<sub>1</sub></span>. Avec la forme <span class="m">V<sub>s</sub> + (V<sub>c</sub>(t<sub>0</sub>) − V<sub>s</sub>)e<sup>…</sup></span> :</p>
+  <div class="eq">V<sub>1</sub> = V<sub>sat+</sub> + (V<sub>2</sub> − V<sub>sat+</sub>) · e<sup>−(t<sub>3</sub>−t<sub>2</sub>)/RC</sup></div>
+  <p>On isole l'exponentielle :</p>
+  <div class="eq">e<sup>−(t<sub>3</sub>−t<sub>2</sub>)/RC</sup> = <span class="f"><span>V<sub>sat+</sub> − V<sub>1</sub></span><span>V<sub>sat+</sub> − V<sub>2</sub></span></span></div>
+  <p>On passe au logarithme. Comme <span class="m">ln(1/x) = −ln x</span>, le signe moins disparaît en inversant la fraction :</p>
+  <div class="eq key">t<sub>3</sub> − t<sub>2</sub> = RC · ln <span class="f"><span>V<sub>sat+</sub> − V<sub>2</sub></span><span>V<sub>sat+</sub> − V<sub>1</sub></span></span> <small>durée à V<sub>sat+</sub></small></div>
+
+  <h3><span class="tag">4.2</span>Durée de la phase 2, sortie à V<sub>sat−</sub></h3>
+  <p>À <span class="m">t<sub>2</sub></span>, <span class="m">V<sub>c</sub>(t<sub>2</sub>) = V<sub>2</sub></span>, avec <span class="m">V<sub>s</sub> = V<sub>sat−</sub></span> et un départ à <span class="m">V<sub>1</sub></span> :</p>
+  <div class="eq">V<sub>2</sub> = V<sub>sat−</sub> + (V<sub>1</sub> − V<sub>sat−</sub>) · e<sup>−(t<sub>2</sub>−t<sub>1</sub>)/RC</sup> ⇒ e<sup>−(t<sub>2</sub>−t<sub>1</sub>)/RC</sup> = <span class="f"><span>V<sub>sat−</sub> − V<sub>2</sub></span><span>V<sub>sat−</sub> − V<sub>1</sub></span></span></div>
+  <div class="eq key">t<sub>2</sub> − t<sub>1</sub> = RC · ln <span class="f"><span>V<sub>sat−</sub> − V<sub>1</sub></span><span>V<sub>sat−</sub> − V<sub>2</sub></span></span> <small>durée à V<sub>sat−</sub></small></div>
+  <p>Contrôle de signe : <span class="m">V<sub>1</sub> &gt; V<sub>2</sub></span>, donc chaque fraction est supérieure à 1 et chaque logarithme est positif. Une durée négative signalerait une erreur de calcul.</p>
+
+  <h3><span class="tag">4.3</span>Période</h3>
+  <p>La période se mesure entre deux basculements de même sens, par exemple <span class="m">t<sub>1</sub></span> et <span class="m">t<sub>3</sub></span> :</p>
+  <div class="eq key">T = t<sub>3</sub> − t<sub>1</sub> = (t<sub>3</sub> − t<sub>2</sub>) + (t<sub>2</sub> − t<sub>1</sub>) = RC · ln <span class="f"><span>(V<sub>sat+</sub> − V<sub>2</sub>)(V<sub>sat−</sub> − V<sub>1</sub>)</span><span>(V<sub>sat+</sub> − V<sub>1</sub>)(V<sub>sat−</sub> − V<sub>2</sub>)</span></span></div>
+  <p>La somme de deux logarithmes est le logarithme du produit, d'où cette écriture.</p>
+
+  <h3><span class="tag">4.4</span>Rapport cyclique</h3>
+  <p>Le rapport cyclique est la fraction de la période passée à l'état haut :</p>
+  <div class="eq key">δ = <span class="f"><span>T<sub>on</sub></span><span>T</span></span> = <span class="f"><span>t<sub>3</sub> − t<sub>2</sub></span><span>T</span></span> = <span class="f"><span>ln [(V<sub>sat+</sub> − V<sub>2</sub>)/(V<sub>sat+</sub> − V<sub>1</sub>)]</span><span>ln [(V<sub>sat+</sub> − V<sub>2</sub>)(V<sub>sat−</sub> − V<sub>1</sub>) / ((V<sub>sat+</sub> − V<sub>1</sub>)(V<sub>sat−</sub> − V<sub>2</sub>))]</span></span></div>
+</section>
+
+<section id="symetrique">
+  <h2><span class="n">5</span>Cas symétrique : V<sub>sat+</sub> = −V<sub>sat−</sub> = V<sub>sat</sub></h2>
+  <p>En pratique les deux saturations sont opposées. Le calcul se simplifie beaucoup avec trois notations :</p>
+  <div class="eq"><span class="u">a = </span><span class="f"><span>R<sub>1</sub></span><span>R<sub>1</sub> + R<sub>2</sub></span></span> <span class="u">,</span> <span class="u">k = </span> <span class="f"><span>1 + a</span><span>1 − a</span></span> = 1 + <span class="f"><span>2R<sub>1</sub></span><span>R<sub>2</sub></span></span> <span class="u">,</span> <span class="u">ρ = </span><span class="f"><span>V<sub>ref</sub></span><span>V<sub>sat</sub></span></span></div>
+  <p>Le passage de <span class="m">(1+a)/(1−a)</span> à <span class="m">1 + 2R<sub>1</sub>/R<sub>2</sub></span> vient de <span class="m">1 + a = (2R<sub>1</sub> + R<sub>2</sub>)/(R<sub>1</sub> + R<sub>2</sub>)</span> et <span class="m">1 − a = R<sub>2</sub>/(R<sub>1</sub> + R<sub>2</sub>)</span>.</p>
+
+  <h3><span class="tag">5.1</span>Les seuils</h3>
+  <p>Comme <span class="m">R<sub>2</sub>/(R<sub>1</sub>+R<sub>2</sub>) = 1 − a</span>, les seuils s'écrivent :</p>
+  <div class="eq">V<sub>1</sub> = a V<sub>sat</sub> + (1 − a) V<sub>ref</sub> <small>et</small> V<sub>2</sub> = −a V<sub>sat</sub> + (1 − a) V<sub>ref</sub></div>
+
+  <h3><span class="tag">5.2</span>Les quatre différences du log</h3>
+  <p>Avec <span class="m">V<sub>sat−</sub> = −V<sub>sat</sub></span>, la période du 4.3 devient :</p>
+  <div class="eq">T = RC · ln <span class="f"><span>(V<sub>sat</sub> − V<sub>2</sub>)(V<sub>sat</sub> + V<sub>1</sub>)</span><span>(V<sub>sat</sub> − V<sub>1</sub>)(V<sub>sat</sub> + V<sub>2</sub>)</span></span></div>
+  <p>On calcule chaque facteur en mettant <span class="m">V<sub>sat</sub>(1 − a)</span> en évidence :</p>
+  <div class="eq">V<sub>sat</sub> − V<sub>2</sub> = V<sub>sat</sub>(1−a)(k − ρ) <small>V<sub>sat</sub> + V<sub>1</sub> = V<sub>sat</sub>(1−a)(k + ρ)</small></div>
+  <div class="eq">V<sub>sat</sub> − V<sub>1</sub> = V<sub>sat</sub>(1−a)(1 − ρ) <small>V<sub>sat</sub> + V<sub>2</sub> = V<sub>sat</sub>(1−a)(1 + ρ)</small></div>
+  <p>Exemple de vérification : <span class="m">V<sub>sat</sub> + V<sub>1</sub> = V<sub>sat</sub>(1 + a) + (1−a)ρV<sub>sat</sub> = V<sub>sat</sub>(1−a)(k + ρ)</span>, car <span class="m">1 + a = (1−a)k</span>. Le facteur <span class="m">V<sub>sat</sub>(1−a)</span> se simplifie entre le haut et le bas de la fraction.</p>
+
+  <h3><span class="tag">5.3</span>Résultat général</h3>
+  <p>Le haut contient <span class="m">(k − ρ)(k + ρ)</span>, le bas <span class="m">(1 − ρ)(1 + ρ)</span>. On applique <span class="m">(x−y)(x+y) = x² − y²</span>, comme dans le cours :</p>
+  <div class="eq key">T = RC · ln <span class="f"><span>(1 + 2R<sub>1</sub>/R<sub>2</sub>)² − (V<sub>ref</sub>/V<sub>sat</sub>)²</span><span>1 − (V<sub>ref</sub>/V<sub>sat</sub>)²</span></span></div>
+  <p>Les deux durées partielles se lisent aussi directement :</p>
+  <div class="eq">t<sub>3</sub> − t<sub>2</sub> = RC · ln <span class="f"><span>k − ρ</span><span>1 − ρ</span></span> <small>et</small> t<sub>2</sub> − t<sub>1</sub> = RC · ln <span class="f"><span>k + ρ</span><span>1 + ρ</span></span></div>
+  <p><b>Condition d'oscillation.</b> Les fractions du log doivent être positives, ce qui impose <span class="m">|V<sub>ref</sub>| &lt; V<sub>sat</sub></span>. Physiquement, il faut que les seuils restent dans la plage de saturation : <span class="m">V<sub>1</sub> &lt; V<sub>sat+</sub></span> et <span class="m">V<sub>2</sub> &gt; V<sub>sat−</sub></span>. Sinon le condensateur n'atteindrait jamais le seuil et la sortie resterait bloquée.</p>
+
+  <h3><span class="tag">5.4</span>Le cas du cours : V<sub>ref</sub> = 0</h3>
+  <p>Alors <span class="m">ρ = 0</span>, et <span class="m">V<sub>1</sub> = −V<sub>2</sub> = a V<sub>sat</sub></span> : les deux seuils sont symétriques.</p>
+  <div class="eq key">T = 2 · RC · ln(1 + 2R<sub>1</sub>/R<sub>2</sub>) <small>t<sub>3</sub>−t<sub>2</sub> = t<sub>2</sub>−t<sub>1</sub> = RC · ln(1 + 2R<sub>1</sub>/R<sub>2</sub>)</small></div>
+  <div class="eq key">δ = <span class="f"><span>RC · ln(1 + 2R<sub>1</sub>/R<sub>2</sub>)</span><span>2 · RC · ln(1 + 2R<sub>1</sub>/R<sub>2</sub>)</span></span> = 0,5</div>
+  <p>Le signal est un <b>carré parfaitement symétrique</b>, et <span class="m">δ = 0,5</span> quelles que soient les valeurs de <span class="m">R, C, R<sub>1</sub>, R<sub>2</sub></span>. La fréquence se règle, le rapport cyclique non. C'est le point de départ de la suite du cours.</p>
+  <p><b>Exemple chiffré.</b> <span class="m">R = 100 kΩ</span>, <span class="m">C = 1 µF</span>, <span class="m">R<sub>1</sub> = R<sub>2</sub></span> : <span class="m">RC = 0,1 s</span> et <span class="m">1 + 2R<sub>1</sub>/R<sub>2</sub> = 3</span>. Alors <span class="m">T = 2 × 0,1 × ln 3 ≈ 0,22 s</span>, soit une fréquence d'environ <span class="m">4,55 Hz</span>. Avec <span class="m">V<sub>sat</sub> = 12 V</span>, les seuils sont <span class="m">V<sub>1</sub> = +6 V</span> et <span class="m">V<sub>2</sub> = −6 V</span>.</p>
+
+  <h3><span class="tag">Essayer</span>Manipuler les paramètres</h3>
+  <p>La courbe ci-dessous est recalculée à partir des équations de la phase, et la période est mesurée sur la courbe elle-même. Elle doit coïncider avec la formule du 5.3 pour toute valeur admissible.</p>
+  <div class="lab">
+    <div class="ctl">
+      <label for="s-r1">R<sub>1</sub> <span id="o-r1">10 kΩ</span><input id="s-r1" type="range" min="1" max="100" step="1" value="10"></label>
+      <label for="s-r2">R<sub>2</sub> <span id="o-r2">10 kΩ</span><input id="s-r2" type="range" min="1" max="100" step="1" value="10"></label>
+      <label for="s-vr">V<sub>ref</sub> <span id="o-vr">0 V</span><input id="s-vr" type="range" min="-10" max="10" step="0.5" value="0"></label>
+    </div>
+    <div class="fig" id="fig4" style="margin-top:.9rem"></div>
+    <div class="read" aria-live="polite">
+      <div>V<sub>1</sub> = <b id="r-v1"></b></div>
+      <div>V<sub>2</sub> = <b id="r-v2"></b></div>
+      <div>T formule = <b id="r-tf"></b></div>
+      <div>T sur la courbe = <b id="r-tm"></b></div>
+      <div>δ = <b id="r-d"></b></div>
+    </div>
+  </div>
+  <figure style="margin:0">
+    <figcaption><b>Figure 4</b> · Exploration de l'astable. <span class="m">V<sub>sat</sub> = 12 V</span> est fixe, le temps est en unités de <span class="m">RC</span>. Avec <span class="m">V<sub>ref</sub> ≠ 0</span>, le rapport cyclique s'écarte de 0,5 mais la période change aussi : ce n'est donc pas un moyen de régler <span class="m">δ</span> seul.</figcaption>
+  </figure>
+</section>
+
+<section id="diodes">
+  <h2><span class="n">6</span>Régler le rapport cyclique : première modification avec des diodes</h2>
+  <p>Avec <span class="m">V<sub>ref</sub> = 0</span>, on a <span class="m">δ = 0,5</span> constant. Pour obtenir un autre rapport cyclique, il faut que la charge et la décharge du condensateur n'aient pas la même constante de temps. On le fait en leur donnant deux chemins différents, séparés par deux diodes montées en sens opposés : <span class="m">D</span> avec la résistance <span class="m">R</span>, et <span class="m">D'</span> avec la résistance <span class="m">R'</span>, toutes deux en parallèle à la place de l'ancienne résistance <span class="m">R</span>.</p>
+  <div class="tw"><table style="min-width:36rem">
+    <thead><tr><th>Phase</th><th>Sortie</th><th>Condensateur</th><th>Diode passante</th><th>Résistance</th></tr></thead>
+    <tbody>
+      <tr><td><span class="m">t<sub>2</sub> &lt; t &lt; t<sub>3</sub></span></td><td><span class="m">V<sub>sat+</sub></span></td><td>se charge</td><td><span class="m">D</span> passante, <span class="m">D'</span> bloquée</td><td><span class="m">R</span></td></tr>
+      <tr><td><span class="m">t<sub>1</sub> &lt; t &lt; t<sub>2</sub></span></td><td><span class="m">V<sub>sat−</sub></span></td><td>se décharge</td><td><span class="m">D'</span> passante, <span class="m">D</span> bloquée</td><td><span class="m">R'</span></td></tr>
+    </tbody>
+  </table></div>
+  <p>Le courant ne peut traverser qu'une diode à la fois, dans le sens qui lui est permis. Selon que la sortie est haute ou basse, il passe donc par l'une ou par l'autre.</p>
+
+  <h3><span class="tag">6.1</span>Nouvelles durées (V<sub>ref</sub> = 0)</h3>
+  <p>La formule du 4.2 reste vraie en remplaçant <span class="m">R</span> par <span class="m">R'</span>. On simplifie le log avec <span class="m">V<sub>sat−</sub> = −V<sub>sat</sub></span> :</p>
+  <div class="eq">t<sub>2</sub> − t<sub>1</sub> = R'C · ln <span class="f"><span>−V<sub>sat</sub> − <span class="u">(</span>R<sub>1</sub>V<sub>sat</sub>/(R<sub>1</sub>+R<sub>2</sub>)<span class="u">)</span></span><span>−V<sub>sat</sub> + R<sub>1</sub>V<sub>sat</sub>/(R<sub>1</sub>+R<sub>2</sub>)</span></span> = R'C · ln <span class="f"><span>2R<sub>1</sub> + R<sub>2</sub></span><span>R<sub>2</sub></span></span></div>
+  <div class="eq key">t<sub>2</sub> − t<sub>1</sub> = R'C · ln(1 + 2R<sub>1</sub>/R<sub>2</sub>) <small>t<sub>3</sub> − t<sub>2</sub> = RC · ln(1 + 2R<sub>1</sub>/R<sub>2</sub>)</small></div>
+  <div class="eq key">T = (R + R')C · ln(1 + 2R<sub>1</sub>/R<sub>2</sub>) <small>δ = <span class="f"><span>R</span><span>R + R'</span></span></small></div>
+  <p>Ces calculs supposent des diodes idéales. Avec des diodes réelles, la chute d'environ 0,6 V décale légèrement les durées.</p>
+
+  <h3><span class="tag">6.2</span>Pourquoi ce n'est pas encore satisfaisant</h3>
+  <div class="tw"><table style="min-width:28rem">
+    <thead><tr><th><span class="m">R'</span></th><th><span class="m">δ</span></th><th><span class="m">T</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="m">R/3</span></td><td>0,75</td><td><span class="m">(4/3) · RC · ln(1 + 2R<sub>1</sub>/R<sub>2</sub>)</span></td></tr>
+      <tr><td><span class="m">R</span></td><td>0,50</td><td><span class="m">2 · RC · ln(1 + 2R<sub>1</sub>/R<sub>2</sub>)</span></td></tr>
+      <tr><td><span class="m">3R</span></td><td>0,25</td><td><span class="m">4 · RC · ln(1 + 2R<sub>1</sub>/R<sub>2</sub>)</span></td></tr>
+    </tbody>
+  </table></div>
+  <p>Chaque fois qu'on règle <span class="m">δ</span> en changeant <span class="m">R'</span>, la période <span class="m">T</span> change aussi, car <span class="m">T</span> contient <span class="m">R + R'</span>. Pour un moteur, c'est gênant : on voudrait faire varier la vitesse sans toucher à la fréquence. Il faut une autre solution.</p>
+</section>
+
+<section id="pot">
+  <h2><span class="n">7</span>Solution finale : un potentiomètre entre les deux diodes</h2>
+  <p>On remplace <span class="m">R</span> et <span class="m">R'</span> par un potentiomètre de résistance totale <span class="m">R</span>. Le curseur, repéré par la fraction <span class="m">K</span> avec <span class="m">0 &lt; K &lt; 1</span>, partage cette résistance en deux parties dont la somme est constante :</p>
+  <ul>
+    <li>le chemin de charge, par <span class="m">D</span>, traverse la partie <span class="m">K · R</span> ;</li>
+    <li>le chemin de décharge, par <span class="m">D'</span>, traverse la partie <span class="m">(1 − K) · R</span>.</li>
+  </ul>
+  <p>On applique les résultats du 6.1 avec <span class="m">R → K R</span> et <span class="m">R' → (1 − K) R</span> :</p>
+  <div class="eq key">T = (K R + (1 − K) R) · C · ln(1 + 2R<sub>1</sub>/R<sub>2</sub>) = R C · ln(1 + 2R<sub>1</sub>/R<sub>2</sub>)</div>
+  <div class="eq key">δ = <span class="f"><span>K R</span><span>K R + (1 − K) R</span></span> = K</div>
+  <p>La somme <span class="m">K R + (1−K) R</span> vaut toujours <span class="m">R</span> : la période ne dépend plus de la position du curseur. Le rapport cyclique, lui, vaut exactement <span class="m">K</span> et ne dépend plus d'aucune valeur de résistance. On règle <span class="m">δ</span> avec le curseur sans changer <span class="m">T</span>.</p>
+  <figure>
+    <div class="fig" id="fig5"></div>
+    <figcaption><b>Figure 5</b> · Sortie <span class="m">V<sub>s</sub></span> pour trois positions du curseur. La période est la même, seule la largeur de l'état haut change : <span class="m">T<sub>on</sub> = K · T</span>.</figcaption>
+  </figure>
+</section>
+
+<section id="moteur">
+  <h2><span class="n">8</span>Application : variation de vitesse d'un moteur</h2>
+  <p>La sortie <span class="m">V<sub>s</sub></span> de l'astable est un signal MLI (modulation de largeur d'impulsion, PWM en anglais). Elle commande la grille d'un transistor NMOS placé en série avec le moteur, alimenté sous <span class="m">+V<sub>cc</sub></span>. Le NMOS laisse passer le courant quand la tension de grille est positive, c'est-à-dire pendant l'état haut <span class="m">V<sub>s</sub> = V<sub>sat+</sub></span>. Le transistor joue le rôle d'un interrupteur commandé :</p>
+  <div class="eq"><span class="u">0 &lt; t &lt; T<sub>0</sub> :</span> U(t) = V<sub>cc</sub> <small>moteur alimenté</small></div>
+  <div class="eq"><span class="u">T<sub>0</sub> &lt; t &lt; T :</span> U(t) = 0 V <small>moteur coupé</small></div>
+  <p>Ici <span class="m">T<sub>0</sub></span> est la durée de l'état haut, c'est-à-dire <span class="m">T<sub>on</sub> = δ T = K T</span>.</p>
+
+  <h3><span class="tag">8.1</span>Tension moyenne</h3>
+  <p>Le moteur réagit à la valeur moyenne de la tension, rappelée par la définition de la moyenne sur une période :</p>
+  <div class="eq">V<sub>moy</sub> = <span class="f"><span>1</span><span>T</span></span> ∫<sub>0</sub><sup>T</sup> U(t) dt = <span class="f"><span>1</span><span>T</span></span> ∫<sub>0</sub><sup>T<sub>0</sub></sup> V<sub>cc</sub> dt = <span class="f"><span>T<sub>0</sub></span><span>T</span></span> V<sub>cc</sub></div>
+  <p>La deuxième intégrale s'arrête à <span class="m">T<sub>0</sub></span> parce que <span class="m">U = 0</span> ensuite. On obtient :</p>
+  <div class="eq key">V<sub>moy</sub> = δ · V<sub>cc</sub> = K · V<sub>cc</sub></div>
+  <p>La tension moyenne est proportionnelle à la position <span class="m">K</span> du curseur. Tourner le potentiomètre fait varier la vitesse du moteur de façon linéaire, entre 0 et la vitesse maximale à <span class="m">K = 1</span>.</p>
+  <figure>
+    <div class="fig" id="fig6"></div>
+    <figcaption><b>Figure 6</b> · Gauche : tension <span class="m">U(t)</span> aux bornes du moteur pour <span class="m">K = 0,25</span> et <span class="m">K = 0,75</span>, avec la valeur moyenne en pointillé. Droite : <span class="m">V<sub>moy</sub> = K · V<sub>cc</sub></span>.</figcaption>
+  </figure>
+  <div class="note"><b>Remarque du prof.</b>Pour que le moteur « voie » la moyenne, la période <span class="m">T</span> doit être petite devant la constante de temps mécanique du moteur. L'exemple chiffré du 5.4, à environ 4,55 Hz, donnerait des à-coups. En pratique on choisit <span class="m">R</span> et <span class="m">C</span> pour viser quelques centaines de hertz : avec <span class="m">R = 100 kΩ</span>, <span class="m">C = 10 nF</span> et <span class="m">R<sub>1</sub> = R<sub>2</sub></span>, le montage du 7 donne <span class="m">T = RC ln 3 ≈ 1,1 ms</span>, soit environ 910 Hz. Le moteur étant inductif, on ajoute en général une diode de roue libre en parallèle pour protéger le transistor à la coupure.</div>
+</section>
+
+<section id="recap">
+  <h2><span class="n">9</span>Récapitulatif</h2>
+  <div class="tw"><table style="min-width:34rem">
+    <thead><tr><th>Grandeur</th><th>Expression</th></tr></thead>
+    <tbody>
+      <tr><td>Tension en (+)</td><td><span class="m">e<sup>+</sup> = (R<sub>1</sub>V<sub>s</sub> + R<sub>2</sub>V<sub>ref</sub>) / (R<sub>1</sub> + R<sub>2</sub>)</span></td></tr>
+      <tr><td>Seuils</td><td><span class="m">V<sub>1</sub> = (R<sub>1</sub>V<sub>sat+</sub> + R<sub>2</sub>V<sub>ref</sub>) / (R<sub>1</sub>+R<sub>2</sub>)</span>, <span class="m">V<sub>2</sub> = (R<sub>1</sub>V<sub>sat−</sub> + R<sub>2</sub>V<sub>ref</sub>) / (R<sub>1</sub>+R<sub>2</sub>)</span></td></tr>
+      <tr><td>Condensateur</td><td><span class="m">V<sub>c</sub>(t) = V<sub>s</sub> + (V<sub>c</sub>(t<sub>0</sub>) − V<sub>s</sub>) e<sup>−(t−t<sub>0</sub>)/RC</sup></span></td></tr>
+      <tr><td>Durée à <span class="m">V<sub>sat+</sub></span></td><td><span class="m">t<sub>3</sub> − t<sub>2</sub> = RC ln[(V<sub>sat+</sub> − V<sub>2</sub>) / (V<sub>sat+</sub> − V<sub>1</sub>)]</span></td></tr>
+      <tr><td>Durée à <span class="m">V<sub>sat−</sub></span></td><td><span class="m">t<sub>2</sub> − t<sub>1</sub> = RC ln[(V<sub>sat−</sub> − V<sub>1</sub>) / (V<sub>sat−</sub> − V<sub>2</sub>)]</span></td></tr>
+      <tr><td>Période, cas symétrique</td><td><span class="m">T = RC ln[((1 + 2R<sub>1</sub>/R<sub>2</sub>)² − (V<sub>ref</sub>/V<sub>sat</sub>)²) / (1 − (V<sub>ref</sub>/V<sub>sat</sub>)²)]</span></td></tr>
+      <tr><td><span class="m">V<sub>ref</sub> = 0</span></td><td><span class="m">T = 2RC ln(1 + 2R<sub>1</sub>/R<sub>2</sub>)</span>, <span class="m">δ = 0,5</span></td></tr>
+      <tr><td>Deux diodes <span class="m">R</span>, <span class="m">R'</span></td><td><span class="m">T = (R + R')C ln(1 + 2R<sub>1</sub>/R<sub>2</sub>)</span>, <span class="m">δ = R / (R + R')</span></td></tr>
+      <tr><td>Potentiomètre</td><td><span class="m">T = RC ln(1 + 2R<sub>1</sub>/R<sub>2</sub>)</span>, <span class="m">δ = K</span></td></tr>
+      <tr><td>Moteur</td><td><span class="m">V<sub>moy</sub> = K · V<sub>cc</sub></span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><span class="tag">Méthode</span>À savoir refaire seul, dans cet ordre</h3>
+  <ol>
+    <li>Écrire <span class="m">e<sup>+</sup></span> par le pont diviseur, puis les deux seuils <span class="m">V<sub>1</sub></span> et <span class="m">V<sub>2</sub></span>.</li>
+    <li>Pour chaque phase, noter <span class="m">V<sub>s</sub></span>, le seuil actif, la valeur de départ de <span class="m">V<sub>c</sub></span> et la valeur visée.</li>
+    <li>Écrire <span class="m">V<sub>c</sub>(t)</span> avec la solution de l'équation du premier ordre.</li>
+    <li>Écrire la condition de fin de phase (<span class="m">V<sub>c</sub> = V<sub>1</sub></span> ou <span class="m">V<sub>c</sub> = V<sub>2</sub></span>) et résoudre en <span class="m">t</span> avec un logarithme.</li>
+    <li>Additionner les deux durées pour obtenir <span class="m">T</span>, et diviser la durée à l'état haut par <span class="m">T</span> pour <span class="m">δ</span>.</li>
+    <li>Contrôler les signes : chaque durée doit être positive et <span class="m">|V<sub>ref</sub>| &lt; V<sub>sat</sub></span>.</li>
+  </ol>
+</section>
+
+<footer>Les formules de ce cours ont été vérifiées par simulation numérique de l'équation du condensateur avec les deux seuils, pour plusieurs jeux de paramètres dont des cas avec <span class="m">V<sub>ref</sub> ≠ 0</span> : la période et le rapport cyclique concordent avec les expressions établies.</footer>
+</main>
+</div>
+<script>
+(function(){
+var NS='http://www.w3.org/2000/svg';
+function E(tag,attrs,parent,text){
+  var e=document.createElementNS(NS,tag);
+  for(var k in attrs){e.setAttribute(k,attrs[k]);}
+  if(text!=null){e.textContent=text;}
+  if(parent){parent.appendChild(e);}
+  return e;
+}
+function mk(box,w,h,label){
+  box.innerHTML='';
+  return E('svg',{viewBox:'0 0 '+w+' '+h,role:'img','aria-label':label},box);
+}
+function fr(x,d){ if(d==null){d=2;} return x.toFixed(d).replace('.',',').replace('-','−'); }
+function lin(d0,d1,r0,r1){ return function(v){ return r0+(v-d0)*(r1-r0)/(d1-d0); }; }
+function arrow(svg,x,y,dir,cls){
+  var s=5, pts;
+  if(dir==='right'){pts=[x,y,x-2*s,y-s,x-2*s,y+s];}
+  else if(dir==='left'){pts=[x,y,x+2*s,y-s,x+2*s,y+s];}
+  else if(dir==='down'){pts=[x,y,x-s,y-2*s,x+s,y-2*s];}
+  else {pts=[x,y,x-s,y+2*s,x+s,y+2*s];}
+  E('polygon',{points:pts.join(','),'class':cls},svg);
+}
+
+/* ---------- Seuils et simulation exacte (RC = 1, Vsat = 12) ---------- */
+var VSAT=12;
+function thr(R1,R2,Vref){
+  var a=R1/(R1+R2), b=R2*Vref/(R1+R2);
+  return {V1:a*VSAT+b, V2:-a*VSAT+b};
+}
+function formulaT(R1,R2,Vref){
+  var k=1+2*R1/R2, r=Vref/VSAT;
+  return Math.log((k*k-r*r)/(1-r*r));
+}
+function run(R1,R2,Vref,tmax){
+  var th=thr(R1,R2,Vref), t=0, vc=0, vs=VSAT, ev=[{t:0,vs:vs,vc:vc}], n=0;
+  while(t<tmax && n<400){
+    var target=vs>0?th.V1:th.V2;
+    var ratio=(vs-vc)/(vs-target);
+    var dt=ratio>1?Math.log(ratio):0;
+    t+=dt; if(dt>0){vc=target;}
+    vs=-vs; ev.push({t:t,vs:vs,vc:vc}); n++;
+  }
+  return {V1:th.V1,V2:th.V2,ev:ev};
+}
+
+/* ---------- Figure 2 : cycle d'hystérésis ---------- */
+function drawHyst(box){
+  var W=480,H=290,svg=mk(box,W,H,"Caractéristique d'hystérésis Vs en fonction de e moins");
+  var R1=10,R2=10,Vref=3, th=thr(R1,R2,Vref);
+  var xs=lin(-16,16,40,450), ys=lin(-16,16,260,24);
+  E('line',{x1:xs(-16),y1:ys(0),x2:xs(16),y2:ys(0),'class':'ax'},svg);
+  E('line',{x1:xs(0),y1:ys(-16),x2:xs(0),y2:ys(16),'class':'ax'},svg);
+  arrow(svg,xs(16)+2,ys(0),'right','tx-f');
+  E('text',{x:xs(16)-4,y:ys(0)+16,'text-anchor':'end','class':'mt'},svg,'e⁻');
+  E('text',{x:xs(0)+8,y:20},svg,'Vs');
+  E('line',{x1:xs(-16),y1:ys(VSAT),x2:xs(16),y2:ys(VSAT),'class':'gr'},svg);
+  E('line',{x1:xs(-16),y1:ys(-VSAT),x2:xs(16),y2:ys(-VSAT),'class':'gr'},svg);
+  E('text',{x:xs(0)-6,y:ys(VSAT)-5,'text-anchor':'end'},svg,'Vsat+');
+  E('text',{x:xs(0)-6,y:ys(-VSAT)+14,'text-anchor':'end'},svg,'Vsat−');
+  E('line',{x1:xs(th.V1),y1:ys(VSAT),x2:xs(th.V1),y2:ys(0),'class':'dash'},svg);
+  E('line',{x1:xs(th.V2),y1:ys(-VSAT),x2:xs(th.V2),y2:ys(0),'class':'dash'},svg);
+  /* niveaux haut et bas */
+  E('path',{d:'M'+xs(-16)+' '+ys(VSAT)+' H'+xs(th.V1),'class':'vs'},svg);
+  E('path',{d:'M'+xs(th.V2)+' '+ys(-VSAT)+' H'+xs(16),'class':'vs'},svg);
+  /* fronts */
+  E('path',{d:'M'+xs(th.V1)+' '+ys(VSAT)+' V'+ys(-VSAT),'class':'vs'},svg);
+  E('path',{d:'M'+xs(th.V2)+' '+ys(-VSAT)+' V'+ys(VSAT),'class':'vs'},svg);
+  arrow(svg,xs(th.V1),ys(-VSAT)+22,'down','tr');
+  arrow(svg,xs(th.V2),ys(VSAT)-22,'up','tr');
+  arrow(svg,xs(th.V1)-20,ys(VSAT),'right','tr');
+  arrow(svg,xs(th.V2)+20,ys(-VSAT),'left','tr');
+  E('text',{x:xs(th.V1)+6,y:ys(VSAT)+14,'class':'tx-b'},svg,'V1');
+  E('text',{x:xs(th.V2)-6,y:ys(-VSAT)-8,'text-anchor':'end','class':'tx-b'},svg,'V2');
+  E('text',{x:xs(th.V1),y:ys(0)+16,'text-anchor':'middle','class':'tx-b'},svg,fr(th.V1,1)+' V');
+  E('text',{x:xs(th.V2),y:ys(0)-8,'text-anchor':'middle','class':'tx-b'},svg,fr(th.V2,1)+' V');
+}
+
+/* ---------- Figures 3 et 4 : chronogrammes de l'astable ---------- */
+function drawWaves(box,R1,R2,Vref,out){
+  var W=480,H=340,svg=mk(box,W,H,"Chronogrammes de la tension du condensateur et de la sortie de l'astable");
+  var Tf=formulaT(R1,R2,Vref);
+  var tmax=Math.min(80,Math.max(7,3.3*Tf));
+  var sim=run(R1,R2,Vref,tmax+Tf), ev=sim.ev;
+  var L=48,Rg=60,x0=L,x1=W-Rg;
+  var xs=lin(0,tmax,x0,x1);
+  var yc=lin(-VSAT*1.12,VSAT*1.12,196,26);
+  var ysA=lin(-VSAT*1.25,VSAT*1.25,300,214);
+  /* bandes de phase */
+  for(var i=0;i<ev.length-1;i++){
+    var ta=ev[i].t, tb=Math.min(ev[i+1].t,tmax);
+    if(ta>=tmax){break;}
+    if(tb<=ta){continue;}
+    E('rect',{x:xs(ta),y:20,width:xs(tb)-xs(ta),height:282,'class':ev[i].vs>0?'band-a':'band-b'},svg);
+  }
+  /* axes et repères */
+  E('line',{x1:x0,y1:yc(0),x2:x1,y2:yc(0),'class':'gr'},svg);
+  E('line',{x1:x0,y1:yc(VSAT),x2:x1,y2:yc(VSAT),'class':'gr'},svg);
+  E('line',{x1:x0,y1:yc(-VSAT),x2:x1,y2:yc(-VSAT),'class':'gr'},svg);
+  E('text',{x:x0-6,y:yc(VSAT)+4,'text-anchor':'end'},svg,'Vsat+');
+  E('text',{x:x0-6,y:yc(-VSAT)+4,'text-anchor':'end'},svg,'Vsat−');
+  E('text',{x:x0-6,y:yc(0)+4,'text-anchor':'end'},svg,'0');
+  E('line',{x1:x0,y1:yc(sim.V1),x2:x1,y2:yc(sim.V1),'class':'dash'},svg);
+  E('line',{x1:x0,y1:yc(sim.V2),x2:x1,y2:yc(sim.V2),'class':'dash'},svg);
+  var y1=yc(sim.V1), y2=yc(sim.V2);
+  if(y2-y1<13){y2=y1+13;}
+  E('text',{x:x1+6,y:y1+4,'class':'tx-b'},svg,'V1='+fr(sim.V1,1));
+  E('text',{x:x1+6,y:y2+4,'class':'tx-b'},svg,'V2='+fr(sim.V2,1));
+  /* courbe Vc */
+  var d='';
+  for(var j=0;j<ev.length-1;j++){
+    var a=ev[j], b=ev[j+1];
+    if(a.t>=tmax){break;}
+    var te=Math.min(b.t,tmax), n=Math.max(2,Math.round((te-a.t)*14));
+    for(var s=0;s<=n;s++){
+      var tt=a.t+(te-a.t)*s/n;
+      var v=a.vs+(a.vc-a.vs)*Math.exp(-(tt-a.t));
+      d+=(d===''?'M':'L')+xs(tt).toFixed(1)+' '+yc(v).toFixed(1);
+    }
+  }
+  E('path',{d:d,'class':'vc'},svg);
+  E('circle',{cx:xs(0),cy:yc(0),r:3.2,'class':'tb'},svg);
+  /* sortie Vs */
+  var p='';
+  for(var m=0;m<ev.length;m++){
+    var e0=ev[m], tEnd=(m+1<ev.length)?Math.min(ev[m+1].t,tmax):tmax;
+    if(e0.t>=tmax){break;}
+    p+=(p===''?'M':'L')+xs(e0.t).toFixed(1)+' '+ysA(e0.vs).toFixed(1)+' L'+xs(tEnd).toFixed(1)+' '+ysA(e0.vs).toFixed(1);
+  }
+  E('path',{d:p,'class':'vs'},svg);
+  E('text',{x:x0-6,y:ysA(VSAT)+4,'text-anchor':'end'},svg,'Vsat+');
+  E('text',{x:x0-6,y:ysA(-VSAT)+4,'text-anchor':'end'},svg,'Vsat−');
+  E('text',{x:x1+6,y:ysA(0)+4,'class':'tx-r'},svg,'Vs');
+  E('text',{x:x1+6,y:yc(0)-3,'class':'tx-b'},svg,'Vc=e⁻');
+  /* instants de basculement */
+  for(var q=0;q<Math.min(4,ev.length);q++){
+    var tq=ev[q].t; if(tq>tmax){break;}
+    E('line',{x1:xs(tq),y1:20,x2:xs(tq),y2:306,'class':'dash'},svg);
+    E('text',{x:xs(tq)+(q===0?2:0),y:318,'text-anchor':q===0?'start':'middle','class':'tx-b'},svg,'t'+q);
+  }
+  /* numéros de phase */
+  for(var r=0;r<Math.min(3,ev.length-1);r++){
+    var pa=ev[r].t, pb=Math.min(ev[r+1].t,tmax);
+    if(pa>=tmax){break;}
+    var cx=xs((pa+pb)/2);
+    E('circle',{cx:cx,cy:11,r:8,fill:'none',stroke:'var(--muted)','stroke-width':1},svg);
+    E('text',{x:cx,y:15,'text-anchor':'middle','class':'tx-f'},svg,String(r+1));
+  }
+  /* graduations de temps */
+  var step=tmax>30?10:(tmax>14?2:1);
+  for(var g=0;g<=tmax;g+=step){
+    E('text',{x:xs(g),y:H-4,'text-anchor':'middle'},svg,String(g));
+  }
+  E('text',{x:x1+6,y:H-4},svg,'t/RC');
+  /* mesure de la période sur la courbe : t3 - t1 */
+  var Tm=(ev.length>=4)?(ev[3].t-ev[1].t):NaN;
+  var Th=(ev.length>=4)?(ev[3].t-ev[2].t):NaN;
+  if(out){ out.Tm=Tm; out.Tf=Tf; out.d=Th/Tm; out.V1=sim.V1; out.V2=sim.V2; }
+}
+
+/* ---------- Figures 5 et 6 : trains d'impulsions ---------- */
+function pulseRows(svg,rows,x0,x1,top,rowH,hiVal,loVal,hiTxt,loTxt,mean,meanTxt){
+  var Tn=2.5, xs=lin(0,Tn,x0,x1);
+  rows.forEach(function(K,i){
+    var yTop=top+i*rowH+10, yBot=yTop+rowH-34;
+    var d='M'+xs(0)+' '+yTop;
+    for(var p=0;p<Math.ceil(Tn);p++){
+      var tU=p+K, tN=p+1;
+      d+=' H'+xs(Math.min(tU,Tn));
+      if(tU<Tn){d+=' V'+yBot+' H'+xs(Math.min(tN,Tn));}
+      if(tN<Tn){d+=' V'+yTop;}
+    }
+    E('line',{x1:x0,y1:yBot,x2:x1,y2:yBot,'class':'gr'},svg);
+    E('path',{d:d,'class':'vs'},svg);
+    for(var q=0;q<=Math.floor(Tn);q++){
+      E('line',{x1:xs(q),y1:yTop-6,x2:xs(q),y2:yBot+6,'class':'dash'},svg);
+    }
+    E('text',{x:x0-6,y:yTop+4,'text-anchor':'end'},svg,hiTxt);
+    E('text',{x:x0-6,y:yBot+4,'text-anchor':'end'},svg,loTxt);
+    E('text',{x:x0,y:yBot+20,'class':'tx-b'},svg,'K = '+fr(K,2));
+    if(mean){
+      var ym=yBot+(yTop-yBot)*K;
+      E('line',{x1:x0,y1:ym,x2:x1,y2:ym,stroke:'var(--blue)','stroke-width':1.6,'stroke-dasharray':'5 3'},svg);
+      E('text',{x:x1,y:ym-5,'text-anchor':'end','class':'tx-b'},svg,meanTxt(K));
+    }
+  });
+  return xs;
+}
+function drawPulses5(box){
+  var W=480,H=300,svg=mk(box,W,H,"Sortie Vs pour trois positions du curseur, avec la même période");
+  var xs=pulseRows(svg,[0.2,0.5,0.8],56,W-16,0,98,0,0,'Vsat+','Vsat−',false);
+  E('text',{x:xs(0),y:H-2,'class':'tx-f'},svg,'0');
+  E('text',{x:xs(1),y:H-2,'text-anchor':'middle','class':'tx-f'},svg,'T');
+  E('text',{x:xs(2),y:H-2,'text-anchor':'middle','class':'tx-f'},svg,'2T');
+}
+function drawMotor6(box){
+  var W=480,H=260,svg=mk(box,W,H,"Tension aux bornes du moteur et tension moyenne en fonction de K");
+  var xs=pulseRows(svg,[0.25,0.75],50,262,0,110,0,0,'Vcc','0',true,function(K){return 'Vmoy = '+fr(K,2)+' Vcc';});
+  E('text',{x:xs(0),y:H-2,'class':'tx-f'},svg,'0');
+  E('text',{x:xs(1),y:H-2,'text-anchor':'middle','class':'tx-f'},svg,'T');
+  E('text',{x:xs(2),y:H-2,'text-anchor':'middle','class':'tx-f'},svg,'2T');
+  /* graphe Vmoy = f(K) */
+  var gx=lin(0,1,326,452), gy=lin(0,1,196,26);
+  E('line',{x1:gx(0),y1:gy(0),x2:gx(1.08),y2:gy(0),'class':'ax'},svg);
+  E('line',{x1:gx(0),y1:gy(0),x2:gx(0),y2:gy(1.1),'class':'ax'},svg);
+  E('line',{x1:gx(0),y1:gy(1),x2:gx(1),y2:gy(1),'class':'dash'},svg);
+  E('line',{x1:gx(1),y1:gy(0),x2:gx(1),y2:gy(1),'class':'dash'},svg);
+  E('line',{x1:gx(0),y1:gy(0),x2:gx(1),y2:gy(1),'class':'vc'},svg);
+  [0.25,0.75].forEach(function(K){ E('circle',{cx:gx(K),cy:gy(K),r:3.6,'class':'tr'},svg); });
+  E('text',{x:gx(0)-6,y:gy(1)+4,'text-anchor':'end'},svg,'Vcc');
+  E('text',{x:gx(0)-6,y:gy(0)+4,'text-anchor':'end'},svg,'0');
+  E('text',{x:gx(0),y:gy(0)+16},svg,'0');
+  E('text',{x:gx(1),y:gy(0)+16,'text-anchor':'middle'},svg,'1');
+  E('text',{x:gx(1.08),y:gy(0)+16,'text-anchor':'end','class':'tx-f'},svg,'K');
+  E('text',{x:gx(0)+6,y:gy(1.1)+2,'class':'tx-f'},svg,'Vmoy');
+}
+
+/* ---------- Initialisation ---------- */
+function $(id){return document.getElementById(id);}
+function ready(fn){ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',fn);}else{fn();} }
+ready(function(){
+  drawHyst($('fig2'));
+  drawWaves($('fig3'),10,10,0,null);
+  drawPulses5($('fig5'));
+  drawMotor6($('fig6'));
+  var s1=$('s-r1'), s2=$('s-r2'), sv=$('s-vr');
+  function upd(){
+    var R1=+s1.value, R2=+s2.value, Vr=+sv.value, o={};
+    $('o-r1').textContent=R1+' kΩ';
+    $('o-r2').textContent=R2+' kΩ';
+    $('o-vr').textContent=fr(Vr,1)+' V';
+    drawWaves($('fig4'),R1,R2,Vr,o);
+    $('r-v1').textContent=fr(o.V1,2)+' V';
+    $('r-v2').textContent=fr(o.V2,2)+' V';
+    $('r-tf').textContent=fr(o.Tf,3)+' RC';
+    $('r-tm').textContent=isNaN(o.Tm)?'—':fr(o.Tm,3)+' RC';
+    $('r-d').textContent=isNaN(o.d)?'—':fr(o.d,3);
+  }
+  [s1,s2,sv].forEach(function(s){ s.addEventListener('input',upd); });
+  upd();
+});
+})();
+</script>
+
+</body></html>
